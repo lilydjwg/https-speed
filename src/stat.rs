@@ -106,6 +106,7 @@ fn update_stats(
     let mut conns = connections.lock().unwrap();
     let mut values: Vec<_> = conns.values().collect();
     values.sort_by_key(|v| v.received);
+    values.reverse();
     for v in values {
       if v.stall_count < 10 {
         write!(buffer, "\x1b[{y};1H{:width$} {:9}/s↑ {:9}/s↓ {:9}↑ {:9}↓",
