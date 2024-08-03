@@ -1,17 +1,20 @@
 [package]
 name = "https-speed"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 [dependencies]
-byteorder = "*"
 clap = { version = "*", default-features = false, features = ["std", "derive", "help", "usage", "error-context"] }
 eyre = "*"
-libc = "*"
-pcap = "*"
-signalbool = "*"
-smoltcp = "*"
-termion = "*"
-tls-parser = "*"
 tracing = "*"
 tracing-subscriber = { version = "*", default-features = false, features = ["env-filter", "fmt", "ansi", "local-time"] }
+itertools = "*"
+
+byteorder = "*"
+libc = "*"
+pcap = "*"
+smoltcp = "*"
+tls-parser = "*"
+
+signalbool = "*"
+termion = "*"

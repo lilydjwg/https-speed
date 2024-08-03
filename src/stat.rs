@@ -33,6 +33,26 @@ impl Stat {
   }
 }
 
+#[derive(Default)]
+struct PureStat {
+  sent: usize,
+  received: usize,
+  total_sent: usize,
+  total_received: usize,
+}
+
+impl std::ops::Add<&Stat> for PureStat {
+  type Output = PureStat;
+  fn add(self, rhs: &Stat) -> Self::Output {
+    Self {
+      sent: self.sent + rhs.sent,
+      received: self.received + rhs.received,
+      total_sent: self.total_sent + rhs.total_sent,
+      total_received: self.total_received + rhs.total_received,
+    }
+  }
+}
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Instant, Duration};
@@ -104,22 +124,46 @@ fn update_stats(
   let mut y = 1;
   {
     let mut conns = connections.lock().unwrap();
-    let mut values: Vec<_> = conns.values().collect();
-    values.sort_by_key(|v| v.received);
-    values.reverse();
-    for v in values {
-      if v.stall_count < 10 {
-        write!(buffer, "\x1b[{y};1H{:width$} {:9}/s↑ {:9}/s↓ {:9}↑ {:9}↓",
-          &v.hostname[..std::cmp::min(target_width, v.hostname.len())],
-          Filesize(v.sent),
-          Filesize(v.received),
-          Filesize(v.total_sent),
-          Filesize(v.total_received),
-          width = target_width,
-          y = y,
-        ).unwrap();
-        y += 1;
-      }
+    let mut values: Vec<_> = conns.values().filter(|v| v.stall_count < 10).collect();
+
+    use std::borrow::Cow;
+    use itertools::Itertools;
+    values.sort_by_key(|v| &v.hostname);
+    let mut stats: Vec<(_, PureStat)> = values.into_iter()
+      .chunk_by(|v| &v.hostname)
+      .into_iter()
+      .map(|(k, chunk)| {
+        let (n, st) = chunk.fold((0, PureStat::default()), |acc, v| (
+          acc.0 + 1,
+          acc.1 + v,
+        ));
+
+        let title = if n == 1 {
+          let avail_width = target_width;
+          let title = &k[..std::cmp::min(avail_width, k.len())];
+          Cow::<str>::Borrowed(title)
+        } else {
+          let avail_width = target_width - 2 - int_width(n);
+          let title = &k[..std::cmp::min(avail_width, k.len())];
+          Cow::Owned(format!("{} x{}", title, n))
+        };
+        (title, st)
+      })
+      .collect();
+
+    stats.sort_by_key(|x| usize::MAX - x.1.received);
+
+    for (title, st) in stats {
+      write!(buffer, "\x1b[{y};1H{:width$} {:9}/s↑ {:9}/s↓ {:9}↑ {:9}↓",
+        title,
+        Filesize(st.sent),
+        Filesize(st.received),
+        Filesize(st.total_sent),
+        Filesize(st.total_received),
+        width = target_width,
+        y = y,
+      ).unwrap();
+      y += 1;
     }
 
     conns.retain(|_k, v| {
@@ -164,3 +208,6 @@ fn read_stdin() -> (bool, bool) {
   (ctrl_c, ctrl_l)
 }
 
+fn int_width(n: u64) -> usize {
+  (if n == 0 { 0 } else { n.ilog10() as usize }) + 1
+}
