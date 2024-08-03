@@ -72,7 +72,9 @@ fn main() -> Result<()> {
     .with_env_filter(filter)
     .with_ansi(isatty);
   if isatty {
-    fmt.init();
+    fmt
+      .with_timer(tracing_subscriber::fmt::time::LocalTime::rfc_3339())
+      .init();
   } else {
     fmt.without_time().init();
   }

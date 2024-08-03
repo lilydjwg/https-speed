@@ -14,4 +14,4 @@ smoltcp = "*"
 termion = "*"
 tls-parser = "*"
 tracing = "*"
-tracing-subscriber = { version = "*", default-features = false, features = ["env-filter", "fmt", "ansi"] }
+tracing-subscriber = { version = "*", default-features = false, features = ["env-filter", "fmt", "ansi", "local-time"] }
