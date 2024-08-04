@@ -127,16 +127,13 @@ fn update_stats(
     let mut values: Vec<_> = conns.values().filter(|v| v.stall_count < 10).collect();
 
     use std::borrow::Cow;
-    use itertools::Itertools;
     values.sort_by_key(|v| &v.hostname);
-    let mut stats: Vec<(_, PureStat)> = values.into_iter()
-      .chunk_by(|v| &v.hostname)
-      .into_iter()
-      .map(|(k, chunk)| {
-        let (n, st) = chunk.fold((0, PureStat::default()), |acc, v| (
-          acc.0 + 1,
-          acc.1 + v,
-        ));
+    let mut stats: Vec<(_, PureStat)> = values
+      .chunk_by(|a, b| a.hostname == b.hostname)
+      .map(|stats| {
+        let k = &stats[0].hostname;
+        let n = stats.len();
+        let st = stats.iter().fold(PureStat::default(), |acc, v| acc + v);
 
         let title = if n == 1 {
           let avail_width = target_width;
@@ -151,7 +148,7 @@ fn update_stats(
       })
       .collect();
 
-    stats.sort_by_key(|x| usize::MAX - x.1.received);
+    stats.sort_by_key(|x| std::cmp::Reverse(x.1.received));
 
     for (title, st) in stats {
       write!(buffer, "\x1b[{y};1H{:width$} {:9}/s↑ {:9}/s↓ {:9}↑ {:9}↓",
@@ -208,6 +205,6 @@ fn read_stdin() -> (bool, bool) {
   (ctrl_c, ctrl_l)
 }
 
-fn int_width(n: u64) -> usize {
+fn int_width(n: usize) -> usize {
   (if n == 0 { 0 } else { n.ilog10() as usize }) + 1
 }

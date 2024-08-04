@@ -8,7 +8,6 @@ clap = { version = "*", default-features = false, features = ["std", "derive", "
 eyre = "*"
 tracing = "*"
 tracing-subscriber = { version = "*", default-features = false, features = ["env-filter", "fmt", "ansi", "local-time"] }
-itertools = "*"
 
 byteorder = "*"
 libc = "*"
